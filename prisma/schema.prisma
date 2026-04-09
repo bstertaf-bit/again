@@ -1,0 +1,119 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum PostCategory {
+  EXPERIENCE
+  ADVICE
+  HOUSING
+  QUESTION
+}
+
+enum HousingType {
+  OFFER
+  REQUEST
+}
+
+enum ConnectionStatus {
+  PENDING
+  ACCEPTED
+  REJECTED
+}
+
+model User {
+  id               String            @id @default(cuid())
+  name             String
+  email            String            @unique
+  password         String
+  country          String
+  school           String
+  year             Int
+  bio              String?
+  createdAt        DateTime          @default(now())
+  posts            Post[]
+  comments         Comment[]
+  housingListings  Housing[]
+  sentConnections  Connection[]      @relation("sentConnections")
+  recvConnections  Connection[]      @relation("recvConnections")
+  memberships      GroupMembership[]
+}
+
+model Post {
+  id        String       @id @default(cuid())
+  title     String
+  content   String
+  category  PostCategory
+  authorId  String
+  createdAt DateTime     @default(now())
+  author    User         @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  comments  Comment[]
+
+  @@index([authorId])
+}
+
+model Comment {
+  id        String   @id @default(cuid())
+  content   String
+  userId    String
+  postId    String
+  createdAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  post      Post     @relation(fields: [postId], references: [id], onDelete: Cascade)
+
+  @@index([postId])
+}
+
+model Housing {
+  id          String      @id @default(cuid())
+  title       String
+  description String
+  location    String
+  price       Float
+  type        HousingType
+  userId      String
+  createdAt   DateTime    @default(now())
+  user        User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+model Connection {
+  id          String           @id @default(cuid())
+  requesterId String
+  receiverId  String
+  status      ConnectionStatus @default(PENDING)
+  requester   User             @relation("sentConnections", fields: [requesterId], references: [id], onDelete: Cascade)
+  receiver    User             @relation("recvConnections", fields: [receiverId], references: [id], onDelete: Cascade)
+
+  @@unique([requesterId, receiverId])
+}
+
+model Group {
+  id          String            @id @default(cuid())
+  name        String            @unique
+  description String
+  createdAt   DateTime          @default(now())
+  memberships GroupMembership[]
+}
+
+model GroupMembership {
+  id      String @id @default(cuid())
+  userId  String
+  groupId String
+  user    User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  group   Group  @relation(fields: [groupId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, groupId])
+}
+
+model Announcement {
+  id        String   @id @default(cuid())
+  title     String
+  content   String
+  createdAt DateTime @default(now())
+}
